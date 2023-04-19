@@ -211,6 +211,7 @@ class Obstacle { //장애물 클래스
         this.width = 50;
         this.height = 150;
         this.color = 'red'
+        this.isDead = false; // 체력이 0이되면 isDead -> true
         this.healthBar = {
             color : 'yellow',
             position_x : this.x,
@@ -227,13 +228,24 @@ class Obstacle { //장애물 클래스
         ctx.fillRect(this.x, this.y, this.width, this.height);
         //물체가 생성될때 충돌 여부를 확인할 수 있게 '이 x좌표에 오면 충돌한걸로 알리겠다' 라는 의미
         
+        if (this.healthBar.healthCurrentCount == 0) {
+            isDead = true;
+        }
+
         var i;
-        for (i = 0; i < this.width; i++) {
-            collisonCheckX[this.x + i] = 1;
+        if (isDead == true) { //죽으면 좌표계에 없는걸로 취급
+            for (i = 0; i < this.width; i++) {
+                collisonCheckX[this.x + i] = 0;
+            }
+        }
+        else {
+            for (i = 0; i < this.width; i++) {
+                collisonCheckX[this.x + i] = 1;
+            }
         }
 
         ctx.fillStyle = this.healthBar.color;
-        if(this.healthBar.healthCurrentCount >= 0) {
+        if(this.healthBar.healthCurrentCount > 0) { //살아있는 경우
             ctx.fillRect(this.healthBar.position_x, this.healthBar.position_y,
                 this.healthBar.width * (this.healthBar.healthCurrentCount / this.healthBar.healthFullCount), this.healthBar.height)
         }
@@ -276,7 +288,7 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
     ctx.clearRect(0,0, canvas.width, canvas.height);
 
     //배경 부분
-    ctx.fillStyle = 'gray';
+    ctx.fillStyle = 'green';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 

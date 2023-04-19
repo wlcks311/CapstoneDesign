@@ -2,8 +2,8 @@ var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 
 
-canvas.width = 1024;
-canvas.height = 576;
+canvas.width = 1600;
+canvas.height = 800;
 
 createFillArray = function(len, n) {
     return new Array(len).fill(n);
@@ -12,6 +12,7 @@ createFillArray = function(len, n) {
 collisonCheckX = createFillArray(canvas.width, -1); //캔버스의 가로 길이만큼의 x좌표계 생성. 기본 원소값은 전부 -1 -> 물체가 없는 상태
 defaultArr_X = createFillArray(canvas.width, -1);    //물체가 생기면 해당 x좌표를 1로 바꿔줌.
 
+//이미지 파일들
 var img_Idle01 = new Image();
 img_Idle01.src = 'Idle01.png' // 폴더에 저장돼있는 사진 파일명
 
@@ -36,7 +37,19 @@ img_Middle_Attack_full.src = 'Middle_Attack_full.png'
 var img_Middle_Attack_full_left = new Image();
 img_Middle_Attack_full_left.src = 'Middle_Attack_full_left.png'
 
+var img_BG_test = new Image();
+img_BG_test.src = 'BG_test.png'
 
+//애니메이션 관련 변수
+
+//배경화면 정보
+var BG_length = 2400;
+var BG_CanvasLength = canvas.height;
+
+var isBGmovingRight = false;
+var isBGmovingLeft = false;
+
+//주인공 정보
 var p1_length = 1950;
 var p1_CanvasLength = 150; //화면에 표시되는 주인공의 가로,세로 길이
 
@@ -62,10 +75,24 @@ var attackFrame = 0; //공격 장면 프레임 정보
 
 var lookingRight = true;
 
+class BackGround {
+    constructor() {
+        this.BG_x = 0;
+        this.BG_count = 4;
+        this.BG_xMax = BG_CanvasLength * (this.BG_count - 1);
+         //주인공이 화면 끝까지 이동할 수 있는 경우는 오른쪽으로 가면서 BG_x == BG_xMax이거나, 왼쪽으로 가면서 BG_x == 0 인 경우. 그 이외에는 화면이 움직여야 함
+    }
+    draw() {
+        ctx.drawImage(img_BG_test, this.BG_x, 0, BG_length * 2, BG_length, 0, 0, canvas.width, canvas.height);
+    }
+}
+
+bg = new BackGround();
+
 class MainCharacter {
     constructor() {
         this.x = 400;
-        this.y = 150;
+        this.y = 400;
         this.width = p1_CanvasLength - 20;
         this.height = p1_CanvasLength;
         this.attackBox = {
@@ -80,7 +107,7 @@ class MainCharacter {
         if (isAttacking_motion == true) { //공격 하는 경우 -> 움직일 수 없음
             if (lookingRight == true) {
                 if (attackFrame < 20) {
-                    attackFrame++;
+                    attackFrame+=2;
                     ctx.drawImage(img_Middle_Attack_full, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
                 }
                 else if(attackFrame == 20) {
@@ -99,7 +126,7 @@ class MainCharacter {
 
             else if (lookingRight == false) {
                 if (attackFrame < 20) {
-                    attackFrame++;
+                    attackFrame+=2;
                     ctx.drawImage(img_Middle_Attack_full_left, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
                 }
                 else if(attackFrame == 20) {
@@ -206,11 +233,12 @@ p1 = new MainCharacter();
 
 class Obstacle { //장애물 클래스
     constructor() {
-        this.x = 700;
-        this.y = 150;//등장하는 위치
+        this.x = 900;
+        this.y = 400;//등장하는 위치
         this.width = 50;
         this.height = 150;
         this.color = 'red'
+        this.isDead = false; // 체력이 0이되면 isDead -> true
         this.healthBar = {
             color : 'yellow',
             position_x : this.x,
@@ -223,19 +251,30 @@ class Obstacle { //장애물 클래스
     }
     
     draw() {
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+
+
+        if (this.healthBar.healthCurrentCount == 0) {
+            this.isDead = true;
+        }
         //물체가 생성될때 충돌 여부를 확인할 수 있게 '이 x좌표에 오면 충돌한걸로 알리겠다' 라는 의미
         
         var i;
-        for (i = 0; i < this.width; i++) {
-            collisonCheckX[this.x + i] = 1;
+        if (this.isDead == true) { //죽으면 좌표계에 없는걸로 취급
+            for (i = 0; i < this.width; i++) {
+                collisonCheckX[this.x + i] = -1;
+            }
+        }
+        else {
+            for (i = 0; i < this.width; i++) {
+                collisonCheckX[this.x + i] = 1;
+            }
         }
 
         ctx.fillStyle = this.healthBar.color;
-        if(this.healthBar.healthCurrentCount >= 0) {
-            ctx.fillRect(this.healthBar.position_x, this.healthBar.position_y,
-                this.healthBar.width * (this.healthBar.healthCurrentCount / this.healthBar.healthFullCount), this.healthBar.height)
+        if(this.healthBar.healthCurrentCount > 0) {
+            ctx.fillRect(this.x, this.y - 20, this.healthBar.width * (this.healthBar.healthCurrentCount / this.healthBar.healthFullCount), this.healthBar.height);
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
         }
 
     } //만약 물체도 움직이는 경우도 해결 해야함
@@ -252,16 +291,13 @@ var obstacle = new Obstacle();
 
 var obstacle2 = new Obstacle();
 obstacle2.x = 200;
-obstacle2.healthBar.position_x = 200;
 obstacle2.color = 'blue';
 
 var obstacle3 = new Obstacle();
-obstacle3.x = 800;
-obstacle3.healthBar.position_x = 800;
+obstacle3.x = 1100;
 
 var obstacle4 = new Obstacle();
-obstacle4.x = 900;
-obstacle4.healthBar.position_x = 900;
+obstacle4.x = 1400;
 
 var movingUp = false;
 var movingDown = false;
@@ -274,28 +310,48 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
     requestAnimationFrame(actionPerFrame);
 
     ctx.clearRect(0,0, canvas.width, canvas.height);
-
-    //배경 부분
-    ctx.fillStyle = 'gray';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-
-    //바닥 부분
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, p1.y + 150, canvas.width, canvas.height);
-
+    isBGmovingRight = false;
+    isBGmovingLeft = false;
     //충돌이 없는 경우에만 주인공의 x, y좌표 갱신
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 550, canvas.width, 250);
 
     //좌표계를 이용해 충돌 확인 
     if ((movingLeft == true && collisonCheckX[((p1.x + p1_CanvasLength / 2) - 30)] == -1) && isAttacking == false) { //왼쪽 충돌 여부 확인 후 왼쪽으로 이동
-        p1.x--;
-        p1.attackBox.position_x--;
+        if ((p1.x <= 300) && bg.BG_x > 0) { //배경화면 오른쪽으로 이동하는 경우 (캐릭터가 왼쪽으로 이동)
+            isBGmovingRight = true;
+            bg.BG_x-=6;
+            obstacle.x+=2;
+            obstacle2.x+=2;
+            obstacle3.x+=2;
+            obstacle4.x+=2;
+            //캐릭터가 왼쪽으로 이동(실제론 가만히 있음)하므로 물체들이 오른쪽으로 이동해야함
+        }
+
+        else {
+            p1.x-=2;
+            p1.attackBox.position_x-=2;
+        }
     }
+    
 
     if ((movingRight == true && collisonCheckX[((p1.x + p1_CanvasLength / 2) + 30)] == -1) && isAttacking == false) { //오른쪽 충돌 여부 확인 후 오른쪽으로 이동
-        p1.x++;
-        p1.attackBox.position_x++;
+        if (((p1.x + p1.width) >= 1000) && bg.BG_x < bg.BG_xMax) { //배경화면 왼쪽으로 이동하는 경우 (캐릭터가 오른쪽으로 이동)
+            isBGmovingLeft = true;
+            bg.BG_x+=6;
+            obstacle.x-=2;
+            obstacle2.x-=2;
+            obstacle3.x-=2;
+            obstacle4.x-=2;
+        }
+
+        else {
+            p1.x+=2;
+            p1.attackBox.position_x+=2;
+        }
+
     }
+    
     //공격 중인 경우
     if (isAttacking == true) {
          //오른쪽 공격인 경우
@@ -311,7 +367,7 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
             else {
                 // ctx.fillStyle = 'green';
                 // ctx.fillRect(p1.attackBox.position_x, p1.attackBox.position_y, attackTimer, p1.attackBox.height);
-                attackTimer++;
+                attackTimer+=2;
             }
             
         }
@@ -328,11 +384,12 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
             else {
                 // ctx.fillStyle = 'green';
                 // ctx.fillRect(p1.attackBox.position_x - attackTimer, p1.attackBox.position_y, attackTimer, p1.attackBox.height);
-                attackTimer++;
+                attackTimer+=2;
             }
         }
     }
 
+    bg.draw()
     obstacle.draw()
     obstacle2.draw()
     obstacle3.draw()
