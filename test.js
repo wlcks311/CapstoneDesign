@@ -106,11 +106,25 @@ class MainCharacter {
 
         if (isAttacking_motion == true) { //공격 하는 경우 -> 움직일 수 없음
             if (lookingRight == true) {
-                if (attackFrame < 20) {
-                    attackFrame+=2;
+                if (attackFrame < 30 && (attackCount <= 1)) {
+                    attackFrame+=6;
                     ctx.drawImage(img_Middle_Attack_full, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
                 }
-                else if(attackFrame == 20) {
+
+                else if (attackFrame < 30 && (attackCount == 2)) {
+                    attackFrame+=3;
+                    ctx.drawImage(img_Middle_Attack_full, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                }
+                else if (attackFrame < 30 && (attackCount <= 4)) {
+                    attackFrame+=5
+                    ctx.drawImage(img_Middle_Attack_full, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                }
+                else if (attackFrame < 30 && (attackCount == 5)) {
+                    attackFrame+=3;
+                    ctx.drawImage(img_Middle_Attack_full, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                }
+
+                else if(attackFrame == 30) {
                     attackFrame = 0;
                     if (attackCount == attackLoop - 1) {
                         attackCount = 0;
@@ -125,11 +139,25 @@ class MainCharacter {
             }
 
             else if (lookingRight == false) {
-                if (attackFrame < 20) {
-                    attackFrame+=2;
+                if (attackFrame < 30 && (attackCount <= 1)) {
+                    attackFrame+=6;
                     ctx.drawImage(img_Middle_Attack_full_left, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
                 }
-                else if(attackFrame == 20) {
+
+                else if (attackFrame < 30 && (attackCount == 2)) {
+                    attackFrame+=3;
+                    ctx.drawImage(img_Middle_Attack_full_left, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                }
+                else if (attackFrame < 30 && (attackCount <= 4)) {
+                    attackFrame+=5
+                    ctx.drawImage(img_Middle_Attack_full_left, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                }
+                else if (attackFrame < 30 && (attackCount == 5)) {
+                    attackFrame+=3;
+                    ctx.drawImage(img_Middle_Attack_full_left, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                }
+
+                else if(attackFrame == 30) {
                     attackFrame = 0;
                     if (attackCount == attackLoop - 1) {
                         attackCount = 0;
@@ -365,8 +393,6 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
                 attackTimer = 0;
             }
             else {
-                // ctx.fillStyle = 'green';
-                // ctx.fillRect(p1.attackBox.position_x, p1.attackBox.position_y, attackTimer, p1.attackBox.height);
                 attackTimer+=2;
             }
             
