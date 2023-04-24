@@ -262,10 +262,10 @@ class Obstacle { //장애물 클래스
 
 var obstacle = new Obstacle();
 
-var obstacle2 = new Obstacle();
-obstacle2.x = 200;
-obstacle2.healthBar.position_x = 200;
-obstacle2.color = 'blue';
+// var obstacle2 = new Obstacle();
+// obstacle2.x = 200;
+// obstacle2.healthBar.position_x = 200;
+// obstacle2.color = 'blue';
 
 var obstacle3 = new Obstacle();
 obstacle3.x = 800;
@@ -314,7 +314,7 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
         if(lookingRight == true) {
             if(attackTimer >= p1.attackBox.width) {
                 obstacle.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
-                obstacle2.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
+                //obstacle2.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
                 obstacle3.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
                 obstacle4.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
                 isAttacking = false;
@@ -331,7 +331,7 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
         else if(lookingRight == false) {
             if(attackTimer >= p1.attackBox.width) {
                 obstacle.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
-                obstacle2.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
+                //obstacle2.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
                 obstacle3.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
                 obstacle4.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
                 isAttacking = false;
@@ -346,7 +346,7 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
     }
 
     obstacle.draw()
-    obstacle2.draw()
+    //obstacle2.draw()
     obstacle3.draw()
     obstacle4.draw()
     p1.draw()

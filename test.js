@@ -12,6 +12,10 @@ createFillArray = function(len, n) {
 collisonCheckX = createFillArray(canvas.width, -1); //캔버스의 가로 길이만큼의 x좌표계 생성. 기본 원소값은 전부 -1 -> 물체가 없는 상태
 defaultArr_X = createFillArray(canvas.width, -1);    //물체가 생기면 해당 x좌표를 1로 바꿔줌.
 
+//모듈 가져오기
+// import { nz1 } from "./mobs.js"
+
+
 //이미지 파일들
 var img_Idle01 = new Image();
 img_Idle01.src = 'Idle01.png' // 폴더에 저장돼있는 사진 파일명
@@ -315,11 +319,112 @@ class Obstacle { //장애물 클래스
 }
 
 
+class NormalZombie {
+    constructor() {
+        this.img_length = 0;   // 스프라이트 이미지 한컷의 길이
+        this.cvs_length = 150; // 실제 캔버스에 그릴 길이
+        this.x = 0;
+        this.y = 0;
+        this.move_range = 100; // 몹이 무작위로 움직이는 최대 범위
+        this.move_randNum = 0; // 몹이 무작위로 움직이는 범위
+        this.moveCount = 0;
+        this.speed = 1;        // 몹 움직이는 속도
+        this.xMax_left = 0;
+        this.xMax_right = 0;
+        this.isMoving = false;
+        this.isMovingDone = true;
+        this.healthBar = {
+            color : 'yellow',
+            width : this.cvs_length,
+            height : 10,
+            healthFullCount : 3, //총 체력
+            healthCurrentCount : 3 //현재 체력
+        }
+    }
+    setPosition(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    setSpeed(speed) {
+        this.speed = speed;
+    }
+    setFixedRange(xMax_left, xMax_right) {
+        this.xMax_left = xMax_left;
+        this.xMax_right = xMax_right;
+    }
+    setMoveRange(move_range) {
+        this.move_range = move_range;
+    }
+    draw() {
+        ctx.fillStyle = 'green';
+        ctx.fillRect(this.x, this.y, this.cvs_length, this.cvs_length);
+    }
+    move() {
+        
+        this.isMoving = true;
+        
+        if (this.isMovingDone == true) { // 움직임이 끝난 상태일 때
+            if (this.moveCount < 90) {// 1.5초 동안 잠시 멈췄다가
+                this.isMoving = false;
+                this.moveCount++;
+            }
+            
+            else { // 다시 움직임 재개
+                this.moveCount = 0;
+                this.move_randNum = Math.floor(Math.random() * this.move_range);
+                // floor -> 정수로 반올림, random -> 0~1사이 난수 발생 여기선 move_range만큼 곱해줌
+    
+                this.isMovingDone = false;
+            }
+
+        }
+
+        else { //움직임이 끝나지 않았을 때
+            if (this.move_randNum <= 10 && this.moveCount < this.move_randNum) { //난수가 일정 수보다 작으면 가만히 서 있는 걸로
+                this.isMoving = false;
+                this.moveCount+=this.speed;
+            }
+
+            else { //움직이는 경우
+                if ((this.move_randNum % 2 == 0) && this.moveCount < this.move_randNum) { //짝수인 경우 -> 오른쪽으로 이동
+                    if (this.x + this.cvs_length + this.speed <= this.xMax_right) { //고정 범위 안에 있는 경우
+                        this.x+=this.speed;
+                        this.moveCount+=this.speed;
+                    }
+                    else { // 고정 범위 끝까지 간 경우 -> 움직임 마쳤다고 판단
+                        this.isMovingDone = true; 
+                    }
+
+                }
+                else if (this.moveCount < this.move_randNum) {//홀수인 경우 -> 왼쪽으로 이동
+                    if (this.x - this.speed >= this.xMax_left) { //고정 범위 안에 있는 경우
+                        this.x-=this.speed;
+                        this.moveCount+=this.speed;
+                    }
+                    else { // 고정 범위 끝까지 간 경우 -> 움직임 마쳤다고 판단
+                        this.isMovingDone = true; 
+                    }
+                }
+
+                else if (this.moveCount >= this.move_randNum) {
+                    this.isMovingDone = true;
+                    this.moveCount = 0;
+                }
+            }
+        }
+    }
+}
+
+nz1 = new NormalZombie();
+
 var obstacle = new Obstacle();
 
-var obstacle2 = new Obstacle();
-obstacle2.x = 200;
-obstacle2.color = 'blue';
+// var obstacle2 = new Obstacle();
+// obstacle2.x = 200;
+// obstacle2.color = 'blue';
+nz1.setPosition(200, 400);
+nz1.setFixedRange(150, 500);
+
 
 var obstacle3 = new Obstacle();
 obstacle3.x = 1100;
@@ -344,13 +449,17 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 550, canvas.width, 250);
 
+    ctx.fillStyle = 'red';
+    ctx.fillRect(150, 550, 5, 100);
+    ctx.fillRect(500, 550, 5, 100);
+
     //좌표계를 이용해 충돌 확인 
     if ((movingLeft == true && collisonCheckX[((p1.x + p1_CanvasLength / 2) - 30)] == -1) && isAttacking == false) { //왼쪽 충돌 여부 확인 후 왼쪽으로 이동
         if ((p1.x <= 300) && bg.BG_x > 0) { //배경화면 오른쪽으로 이동하는 경우 (캐릭터가 왼쪽으로 이동)
             isBGmovingRight = true;
             bg.BG_x-=6;
             obstacle.x+=2;
-            obstacle2.x+=2;
+            //obstacle2.x+=2;
             obstacle3.x+=2;
             obstacle4.x+=2;
             //캐릭터가 왼쪽으로 이동(실제론 가만히 있음)하므로 물체들이 오른쪽으로 이동해야함
@@ -368,7 +477,7 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
             isBGmovingLeft = true;
             bg.BG_x+=6;
             obstacle.x-=2;
-            obstacle2.x-=2;
+            //obstacle2.x-=2;
             obstacle3.x-=2;
             obstacle4.x-=2;
         }
@@ -386,7 +495,7 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
         if(lookingRight == true) {
             if(attackTimer >= p1.attackBox.width) {
                 obstacle.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
-                obstacle2.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
+                //obstacle2.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
                 obstacle3.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
                 obstacle4.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
                 isAttacking = false;
@@ -401,7 +510,7 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
         else if(lookingRight == false) {
             if(attackTimer >= p1.attackBox.width) {
                 obstacle.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
-                obstacle2.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
+                //obstacle2.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
                 obstacle3.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
                 obstacle4.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
                 isAttacking = false;
@@ -417,7 +526,9 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
 
     bg.draw()
     obstacle.draw()
-    obstacle2.draw()
+    //obstacle2.draw()
+    nz1.draw()
+    nz1.move()
     obstacle3.draw()
     obstacle4.draw()
     p1.draw()
