@@ -2,8 +2,8 @@ var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 
 
-canvas.width = 1600;
-canvas.height = 800;
+canvas.width = 2000;
+canvas.height = 1000;
 
 createFillArray = function(len, n) {
     return new Array(len).fill(n);
@@ -11,9 +11,6 @@ createFillArray = function(len, n) {
 
 collisonCheckX = createFillArray(canvas.width, -1); //캔버스의 가로 길이만큼의 x좌표계 생성. 기본 원소값은 전부 -1 -> 물체가 없는 상태
 defaultArr_X = createFillArray(canvas.width, -1);    //물체가 생기면 해당 x좌표를 1로 바꿔줌.
-
-//모듈 가져오기
-// import { nz1 } from "./mobs.js"
 
 
 //이미지 파일들
@@ -46,209 +43,266 @@ img_BG_test.src = 'BG_test.png'
 
 //애니메이션 관련 변수
 
-//배경화면 정보
-var BG_length = 2400;
-var BG_CanvasLength = canvas.height;
-
 var isBGmovingRight = false;
 var isBGmovingLeft = false;
 
-//주인공 정보
-var p1_length = 1950;
-var p1_CanvasLength = 150; //화면에 표시되는 주인공의 가로,세로 길이
 
-var idleLoop = 4; //서있는 모션 총 컷의 수
-
-var walkingLoop = 6; //걷는 모션 총 컷의 수
-var attackLoop = 6; //공격 모션 총 컷의 수
-
-var idleCount = 0;
-
-var walkingCount = 0;
 var refreshRate = 30; // 주사율 -> ex) 20이면 20frame 마다 다음 장면으로 넘어감
 var frameCount = 0;
 
-var isAttacking = false; //공격중인지 여부 -> 공격중일 때는 움직이지 못하도록
-var isAttacking_motion = false; //공격 동작모션에 대한 변수 -> 실제 공격상자랑 모션이랑 차이가 있음
 var attackTimer = 0; // 공격 누적 시간 기록
-
-var attackCount = 0;
 var attackFrame = 0; //공격 장면 프레임 정보
 
 // 등장 캐릭터의 속성부터 object자료에 정리해두면 좋다
 
-var lookingRight = true;
+
 
 class BackGround {
     constructor() {
+        this.BG_length = 2000;
+        this.BG_CanvasLength = canvas.height;
         this.BG_x = 0;
         this.BG_count = 4;
-        this.BG_xMax = BG_CanvasLength * (this.BG_count - 1);
+        this.BG_xMax = (this.BG_length * this.BG_count) - this.BG_length * (canvas.width / canvas.height);
+        this.ratio = this.BG_length / canvas.height;
+        this.isBGmovingRight = false;
+        this.isBGmovingLeft = false;
          //주인공이 화면 끝까지 이동할 수 있는 경우는 오른쪽으로 가면서 BG_x == BG_xMax이거나, 왼쪽으로 가면서 BG_x == 0 인 경우. 그 이외에는 화면이 움직여야 함
     }
     draw() {
-        ctx.drawImage(img_BG_test, this.BG_x, 0, BG_length * 2, BG_length, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img_BG_test, this.BG_x, 0, this.BG_length * (canvas.width / canvas.height), this.BG_length, 0, 0, canvas.width, canvas.height);
     }
 }
 
 bg = new BackGround();
 
-class MainCharacter {
-    constructor() {
-        this.x = 400;
-        this.y = 400;
-        this.width = p1_CanvasLength - 20;
-        this.height = p1_CanvasLength;
+
+// 몹 기본 상위 클래스
+class Creature {
+    constructor(x, y, width, height, CanvasLength) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.CanvasLength = CanvasLength;
         this.attackBox = {
-            position_x : this.x + p1_CanvasLength / 2, //공격 상자의 x좌표 -> 캐릭터 가운데
-            position_y : this.y,                       //공격 상자의 y좌표 -> 캐릭터와 동일
-            width : 80, //공격 가로 범위
-            height : 50 //공격 세로 범위
+            position_x : this.x + this.CanvasLength / 2,
+            position_y : this.y,
+            width: 80,
+            height: 50
         }
+        //각 동작의 총 컷 수
+        this.idleLoop = 0;
+        this.walkingLoop = 0;
+        this.attackLoop = 0;
+
+        //각 동작의 현재 몇 번째 컷인지 알려주는 정보
+        this.idleCount = 0;
+        this.walkingCount = 0;
+        this.attackCount = 0;
+
+        // 보고 있는 방향
+        this.isLookingRight = true;
+
+        // 공격하고 있는지 여부
+        this.isAttacking = false;
+        this.isAttacking_motion = false;
+
+        //움직이고 있는지 여부
+        this.isMoving = false;
+        this.isMovingRight = false;
+        this.isMovingLeft = false;
     }
+
+    setLocation(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    setSize(width, height) {
+        this.width = width;
+        this.height = height;
+    }
+
+    setCanvasSize(CanvasLength) {
+        this.CanvasLength = CanvasLength;
+    }
+
+    setAttackBoxSize(width, height) {
+        this.attackBox.width = width;
+        this.attackBox.height = height;
+    }
+
+    setLoops(idleLoop, walkingLoop, attackLoop) {
+        this.idleLoop = idleLoop;
+        this.walkingLoop = walkingLoop;
+        this.attackLoop = attackLoop;
+    }
+
+    setCounts(idleCount, walkingCount, attackCount) {
+        this.idleCount = idleCount;
+        this.walkingCount = walkingCount;
+        this.attackCount = attackCount;
+    }
+}
+
+class MainCharacter extends Creature {
+    // constructor() {
+    //     this.x = 400;
+    //     this.y = 400;
+    //     this.width = p1.CanvasLength - 20;
+    //     this.height = p1.CanvasLength;
+    //     this.attackBox = {
+    //         position_x : this.x + p1.CanvasLength / 2, //공격 상자의 x좌표 -> 캐릭터 가운데
+    //         position_y : this.y,                       //공격 상자의 y좌표 -> 캐릭터와 동일
+    //         width : 80, //공격 가로 범위
+    //         height : 50 //공격 세로 범위
+    //     }
+    // }
+
     draw() {
 
-        if (isAttacking_motion == true) { //공격 하는 경우 -> 움직일 수 없음
-            if (lookingRight == true) {
-                if (attackFrame < 30 && (attackCount <= 1)) {
+        if (this.isAttacking_motion == true) { //공격 하는 경우 -> 움직일 수 없음
+            if (this.isLookingRight == true) {
+                if (attackFrame < 30 && (this.attackCount <= 1)) {
                     attackFrame+=6;
-                    ctx.drawImage(img_Middle_Attack_full, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                    ctx.drawImage(img_Middle_Attack_full, this.width * this.attackCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                 }
 
-                else if (attackFrame < 30 && (attackCount == 2)) {
+                else if (attackFrame < 30 && (this.attackCount == 2)) {
                     attackFrame+=3;
-                    ctx.drawImage(img_Middle_Attack_full, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                    ctx.drawImage(img_Middle_Attack_full, this.width * this.attackCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                 }
-                else if (attackFrame < 30 && (attackCount <= 4)) {
+                else if (attackFrame < 30 && (this.attackCount <= 4)) {
                     attackFrame+=5
-                    ctx.drawImage(img_Middle_Attack_full, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                    ctx.drawImage(img_Middle_Attack_full, this.width * this.attackCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                 }
-                else if (attackFrame < 30 && (attackCount == 5)) {
+                else if (attackFrame < 30 && (this.attackCount == 5)) {
                     attackFrame+=3;
-                    ctx.drawImage(img_Middle_Attack_full, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                    ctx.drawImage(img_Middle_Attack_full, this.width * this.attackCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                 }
 
                 else if(attackFrame == 30) {
                     attackFrame = 0;
-                    if (attackCount == attackLoop - 1) {
-                        attackCount = 0;
-                        isAttacking_motion = false; //공격 동작 종료
+                    if (this.attackCount == this.attackLoop - 1) {
+                        this.attackCount = 0;
+                        this.isAttacking_motion = false; //공격 동작 종료
                     }
 
                     else {
-                        attackCount++;
+                        this.attackCount++;
                     }
-                    ctx.drawImage(img_Middle_Attack_full, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                    ctx.drawImage(img_Middle_Attack_full, this.width * this.attackCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                 }
             }
 
-            else if (lookingRight == false) {
-                if (attackFrame < 30 && (attackCount <= 1)) {
+            else if (this.isLookingRight == false) {
+                if (attackFrame < 30 && (this.attackCount <= 1)) {
                     attackFrame+=6;
-                    ctx.drawImage(img_Middle_Attack_full_left, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                    ctx.drawImage(img_Middle_Attack_full_left, this.width * this.attackCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                 }
 
-                else if (attackFrame < 30 && (attackCount == 2)) {
+                else if (attackFrame < 30 && (this.attackCount == 2)) {
                     attackFrame+=3;
-                    ctx.drawImage(img_Middle_Attack_full_left, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                    ctx.drawImage(img_Middle_Attack_full_left, this.width * this.attackCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                 }
-                else if (attackFrame < 30 && (attackCount <= 4)) {
+                else if (attackFrame < 30 && (this.attackCount <= 4)) {
                     attackFrame+=5
-                    ctx.drawImage(img_Middle_Attack_full_left, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                    ctx.drawImage(img_Middle_Attack_full_left, this.width * this.attackCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                 }
-                else if (attackFrame < 30 && (attackCount == 5)) {
+                else if (attackFrame < 30 && (this.attackCount == 5)) {
                     attackFrame+=3;
-                    ctx.drawImage(img_Middle_Attack_full_left, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                    ctx.drawImage(img_Middle_Attack_full_left, this.width * this.attackCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                 }
 
                 else if(attackFrame == 30) {
                     attackFrame = 0;
-                    if (attackCount == attackLoop - 1) {
-                        attackCount = 0;
-                        isAttacking_motion = false; //공격 동작 종료
+                    if (this.attackCount == this.attackLoop - 1) {
+                        this.attackCount = 0;
+                        this.isAttacking_motion = false; //공격 동작 종료
                     }
 
                     else {
-                        attackCount++;
+                        this.attackCount++;
                     }
-                    ctx.drawImage(img_Middle_Attack_full_left, p1_length * attackCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                    ctx.drawImage(img_Middle_Attack_full_left, this.width * this.attackCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                 }
             }
         }
             // 공격중이 아닌 경우
         else {
-            if (isMoving == true) { //걷는 경우
-                if (lookingRight == true) { //오른쪽을 보고있는 경우
+            if (this.isMoving == true) { //걷는 경우
+                if (this.isLookingRight == true) { //오른쪽을 보고있는 경우
                     if (frameCount < refreshRate) {
                         frameCount++;
-                        ctx.drawImage(img_Walking_full, p1_length * walkingCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                        ctx.drawImage(img_Walking_full, this.width * this.walkingCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                     }
             
                     else if(frameCount == refreshRate) {
                         frameCount = 0;
-                        if (walkingCount == walkingLoop - 1) {
-                            walkingCount = 0;
+                        if (this.walkingCount == this.walkingLoop - 1) {
+                            this.walkingCount = 0;
                         }
                         else {
-                            walkingCount++;
+                            this.walkingCount++;
                         }
-                        ctx.drawImage(img_Walking_full, p1_length * walkingCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                        ctx.drawImage(img_Walking_full, this.width * this.walkingCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                     }
                 }
         
                 else { // 왼쪽을 보고있는 경우
                     if (frameCount < refreshRate) {
                         frameCount++;
-                        ctx.drawImage(img_Walking_full_left, p1_length * walkingCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                        ctx.drawImage(img_Walking_full_left, this.width *this.walkingCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                     }
             
                     else if(frameCount == refreshRate) {
                         frameCount = 0;
-                        if (walkingCount == walkingLoop - 1) {
-                            walkingCount = 0;
+                        if (this.walkingCount == this.walkingLoop - 1) {
+                            this.walkingCount = 0;
                         }
                         else {
-                            walkingCount++;
+                            this.walkingCount++;
                         }
-                        ctx.drawImage(img_Walking_full_left, p1_length * walkingCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                        ctx.drawImage(img_Walking_full_left, this.width *this.walkingCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                     }
                 }
             }
     
             else { // 가만히 서 있는 경우
-                if (lookingRight == true) { //오른쪽을 보고있는 경우
+                if (this.isLookingRight == true) { //오른쪽을 보고있는 경우
                     if (frameCount < refreshRate) {
                         frameCount++;
-                        ctx.drawImage(img_Idle_full, p1_length * idleCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                        ctx.drawImage(img_Idle_full, this.width * this.idleCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                     }
             
                     else if(frameCount == refreshRate) {
                         frameCount = 0;
-                        if (idleCount == idleLoop - 1) {
-                            idleCount = 0;
+                        if (this.idleCount == this.idleLoop - 1) {
+                            this.idleCount = 0;
                         }
                         else {
-                            idleCount++;
+                            this.idleCount++;
                         }
-                        ctx.drawImage(img_Idle_full, p1_length * idleCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                        ctx.drawImage(img_Idle_full, this.width * this.idleCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                     }
                 }
         
                 else { // 왼쪽을 보고있는 경우
                     if (frameCount < refreshRate) {
                         frameCount++;
-                        ctx.drawImage(img_Idle_full_left, p1_length * idleCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                        ctx.drawImage(img_Idle_full_left, this.width * this.idleCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                     }
             
                     else if(frameCount == refreshRate) {
                         frameCount = 0;
-                        if (idleCount == idleLoop - 1) {
-                            idleCount = 0;
+                        if (this.idleCount == this.idleLoop - 1) {
+                            this.idleCount = 0;
                         }
                         else {
-                            idleCount++;
+                            this.idleCount++;
                         }
-                        ctx.drawImage(img_Idle_full_left, p1_length * idleCount, 0, p1_length, p1_length, this.x, this.y, p1_CanvasLength, p1_CanvasLength);
+                        ctx.drawImage(img_Idle_full_left, this.width * this.idleCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
                     }
                 }
             }
@@ -260,8 +314,8 @@ class MainCharacter {
 
 }
 
-p1 = new MainCharacter();
-
+p1 = new MainCharacter(400, 400, 1950, 1950, 150);
+p1.setLoops(4, 6, 6);
 
 class Obstacle { //장애물 클래스
     constructor() {
@@ -319,32 +373,18 @@ class Obstacle { //장애물 클래스
 }
 
 
-class NormalZombie {
-    constructor() {
-        this.img_length = 0;   // 스프라이트 이미지 한컷의 길이
-        this.cvs_length = 150; // 실제 캔버스에 그릴 길이
-        this.x = 0;
-        this.y = 0;
+class NormalZombie extends Creature {
+    constructor(x, y, width, height, CanvasLength) {
+        super(x, y, width, height, CanvasLength);
         this.move_range = 100; // 몹이 무작위로 움직이는 최대 범위
         this.move_randNum = 0; // 몹이 무작위로 움직이는 범위
         this.moveCount = 0;
         this.speed = 1;        // 몹 움직이는 속도
         this.xMax_left = 0;
         this.xMax_right = 0;
-        this.isMoving = false;
         this.isMovingDone = true;
-        this.healthBar = {
-            color : 'yellow',
-            width : this.cvs_length,
-            height : 10,
-            healthFullCount : 3, //총 체력
-            healthCurrentCount : 3 //현재 체력
-        }
     }
-    setPosition(x, y) {
-        this.x = x;
-        this.y = y;
-    }
+
     setSpeed(speed) {
         this.speed = speed;
     }
@@ -357,7 +397,7 @@ class NormalZombie {
     }
     draw() {
         ctx.fillStyle = 'green';
-        ctx.fillRect(this.x, this.y, this.cvs_length, this.cvs_length);
+        ctx.fillRect(this.x, this.y, this.width, this.height);
     }
     move() {
         
@@ -387,7 +427,7 @@ class NormalZombie {
 
             else { //움직이는 경우
                 if ((this.move_randNum % 2 == 0) && this.moveCount < this.move_randNum) { //짝수인 경우 -> 오른쪽으로 이동
-                    if (this.x + this.cvs_length + this.speed <= this.xMax_right) { //고정 범위 안에 있는 경우
+                    if (this.x + this.width + this.speed <= this.xMax_right) { //고정 범위 안에 있는 경우
                         this.x+=this.speed;
                         this.moveCount+=this.speed;
                     }
@@ -415,14 +455,14 @@ class NormalZombie {
     }
 }
 
-nz1 = new NormalZombie();
+nz1 = new NormalZombie(200, 400, 150, 150, 150);
 
 var obstacle = new Obstacle();
 
 // var obstacle2 = new Obstacle();
 // obstacle2.x = 200;
 // obstacle2.color = 'blue';
-nz1.setPosition(200, 400);
+
 nz1.setFixedRange(150, 500);
 
 
@@ -432,19 +472,18 @@ obstacle3.x = 1100;
 var obstacle4 = new Obstacle();
 obstacle4.x = 1400;
 
-var movingUp = false;
-var movingDown = false;
-var movingRight = false;
-var movingLeft = false;
-var isMoving = false;
 
 
 function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드를 실행함
     requestAnimationFrame(actionPerFrame);
 
+    console.log(bg.BG_x);
+
     ctx.clearRect(0,0, canvas.width, canvas.height);
     isBGmovingRight = false;
     isBGmovingLeft = false;
+    bg.draw()
+
     //충돌이 없는 경우에만 주인공의 x, y좌표 갱신
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 550, canvas.width, 250);
@@ -454,10 +493,10 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
     ctx.fillRect(500, 550, 5, 100);
 
     //좌표계를 이용해 충돌 확인 
-    if ((movingLeft == true && collisonCheckX[((p1.x + p1_CanvasLength / 2) - 30)] == -1) && isAttacking == false) { //왼쪽 충돌 여부 확인 후 왼쪽으로 이동
+    if ((p1.isMovingLeft == true && collisonCheckX[((p1.x + p1.CanvasLength / 2) - 30)] == -1) && p1.isAttacking == false) { //왼쪽 충돌 여부 확인 후 왼쪽으로 이동
         if ((p1.x <= 300) && bg.BG_x > 0) { //배경화면 오른쪽으로 이동하는 경우 (캐릭터가 왼쪽으로 이동)
-            isBGmovingRight = true;
-            bg.BG_x-=6;
+            bg.isBGmovingRight = true;
+            bg.BG_x-=bg.ratio * 2;
             obstacle.x+=2;
             //obstacle2.x+=2;
             obstacle3.x+=2;
@@ -465,17 +504,17 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
             //캐릭터가 왼쪽으로 이동(실제론 가만히 있음)하므로 물체들이 오른쪽으로 이동해야함
         }
 
-        else {
+        else if (p1.x > 0) {
             p1.x-=2;
             p1.attackBox.position_x-=2;
         }
     }
     
 
-    if ((movingRight == true && collisonCheckX[((p1.x + p1_CanvasLength / 2) + 30)] == -1) && isAttacking == false) { //오른쪽 충돌 여부 확인 후 오른쪽으로 이동
-        if (((p1.x + p1.width) >= 1000) && bg.BG_x < bg.BG_xMax) { //배경화면 왼쪽으로 이동하는 경우 (캐릭터가 오른쪽으로 이동)
-            isBGmovingLeft = true;
-            bg.BG_x+=6;
+    if ((p1.isMovingRight == true && collisonCheckX[((p1.x + p1.CanvasLength / 2) + 30)] == -1) && p1.isAttacking == false) { //오른쪽 충돌 여부 확인 후 오른쪽으로 이동
+        if (((p1.x + p1.CanvasLength) >= 1700) && bg.BG_x < bg.BG_xMax) { //배경화면 왼쪽으로 이동하는 경우 (캐릭터가 오른쪽으로 이동)
+            bg.isBGmovingLeft = true;
+            bg.BG_x+=bg.ratio * 2;
             obstacle.x-=2;
             //obstacle2.x-=2;
             obstacle3.x-=2;
@@ -490,41 +529,42 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
     }
     
     //공격 중인 경우
-    if (isAttacking == true) {
+    if (p1.isAttacking == true) {
          //오른쪽 공격인 경우
-        if(lookingRight == true) {
+        if(p1.isLookingRight == true) {
             if(attackTimer >= p1.attackBox.width) {
                 obstacle.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
                 //obstacle2.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
                 obstacle3.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
                 obstacle4.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
-                isAttacking = false;
+                p1.isAttacking = false;
                 attackTimer = 0;
             }
             else {
+                ctx.fillStyle = 'green';
+                ctx.fillRect(p1.attackBox.position_x, p1.attackBox.position_y, attackTimer, p1.attackBox.height);
                 attackTimer+=2;
             }
             
         }
         //왼쪽 공격인 경우
-        else if(lookingRight == false) {
+        else if(p1.isLookingRight == false) {
             if(attackTimer >= p1.attackBox.width) {
                 obstacle.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
                 //obstacle2.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
                 obstacle3.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
                 obstacle4.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
-                isAttacking = false;
+                p1.isAttacking = false;
                 attackTimer = 0;
             }
             else {
-                // ctx.fillStyle = 'green';
-                // ctx.fillRect(p1.attackBox.position_x - attackTimer, p1.attackBox.position_y, attackTimer, p1.attackBox.height);
+                ctx.fillStyle = 'green';
+                ctx.fillRect(p1.attackBox.position_x - attackTimer, p1.attackBox.position_y, attackTimer, p1.attackBox.height);
                 attackTimer+=2;
             }
         }
     }
 
-    bg.draw()
     obstacle.draw()
     //obstacle2.draw()
     nz1.draw()
@@ -537,67 +577,69 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
 actionPerFrame();
 
 
-document.addEventListener('keydown', function(e) { //w키를 누르고 있을때 이벤트 발생 -> 위로 이동
-    if (e.key === 'w') {
-        movingUp = true;
-        isMoving = true;
-    }
-})
+//이벤트 리스너들
 
-document.addEventListener('keyup', function(e) { //w키를 누른상태에서 땠을때 발생
-    if (e.key === 'w') {
-        movingUp = false;
-        isMoving = false;
-    }
-})
+// document.addEventListener('keydown', function(e) { //w키를 누르고 있을때 이벤트 발생 -> 위로 이동
+//     if (e.key === 'w') {
+//         movingUp = true;
+//         isMoving = true;
+//     }
+// })
 
-document.addEventListener('keydown', function(e) { //s키를 누르고 있을때 이벤트 발생 -> 아래로 이동
-    if (e.key === 's') {
-        movingDown = true;
-        isMoving = true;
-    }
-})
+// document.addEventListener('keyup', function(e) { //w키를 누른상태에서 땠을때 발생
+//     if (e.key === 'w') {
+//         movingUp = false;
+//         isMoving = false;
+//     }
+// })
 
-document.addEventListener('keyup', function(e) { //s키를 누른상태에서 땠을때 발생
-    if (e.key === 's') {
-        movingDown = false;
-        isMoving = false;
-    }
-})
+// document.addEventListener('keydown', function(e) { //s키를 누르고 있을때 이벤트 발생 -> 아래로 이동
+//     if (e.key === 's') {
+//         movingDown = true;
+//         isMoving = true;
+//     }
+// })
+
+// document.addEventListener('keyup', function(e) { //s키를 누른상태에서 땠을때 발생
+//     if (e.key === 's') {
+//         movingDown = false;
+//         isMoving = false;
+//     }
+// })
 
 document.addEventListener('keydown', function(e) { //a키를 누르고 있을때 이벤트 발생 -> 왼쪽으로 이동 (보는 방향 전환)
     if (e.key === 'a') {
-        movingLeft = true;
-        lookingRight = false;
-        isMoving = true;
+        p1.isMovingLeft = true;
+        p1.isLookingRight = false;
+        p1.isMoving = true;
     }
 })
 
 document.addEventListener('keyup', function(e) { //a키를 누른상태에서 땠을때 발생
     if (e.key === 'a') {
-        movingLeft = false;
-        isMoving = false;
+        p1.isMovingLeft = false;
+        p1.isMoving = false;
     }
 })
 
 document.addEventListener('keydown', function(e) { //d키를 누르고 있을때 이벤트 발생 -> 오른쪽으로 이동 (보는 방향 전환)
     if (e.key === 'd') {
-        movingRight = true;
-        lookingRight = true;
-        isMoving = true;
+        p1.isMovingRight = true;
+        p1.isLookingRight = true;
+        p1.isMoving = true;
     }
 })
 
 document.addEventListener('keyup', function(e) { //d키를 누른상태에서 땠을때 발생
     if (e.key === 'd') {
-        movingRight = false;
-        isMoving = false;
+        p1.isMovingRight = false;
+        p1.isMoving = false;
     }
 })
 
 document.addEventListener('keydown', function(e) { //f키를 누를시 발생
     if (e.key === 'f') {
-        isAttacking = true;
-        isAttacking_motion = true;
+        p1.isAttacking = true;
+        p1.isAttacking_motion = true;
     }
 })
