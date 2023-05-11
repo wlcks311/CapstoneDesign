@@ -14,29 +14,24 @@ defaultArr_X = createFillArray(canvas.width, -1);    //물체가 생기면 해�
 
 
 //이미지 파일들
-var img_Idle01 = new Image();
-img_Idle01.src = 'Idle01.png' // 폴더에 저장돼있는 사진 파일명
-
-var img_Idle01_Left = new Image();
-img_Idle01_Left.src = 'Idle_left01.png'
 
 var img_Idle_full = new Image();
-img_Idle_full.src = 'Idle_full.png'
+img_Idle_full.src = 'Player_idle.png'
 
 var img_Idle_full_left = new Image();
-img_Idle_full_left.src = 'Idle_full_left.png'
+img_Idle_full_left.src = 'Player_idle_left.png'
 
 var img_Walking_full = new Image();
-img_Walking_full.src = 'Walking_full.png'
+img_Walking_full.src = 'Player_walking.png'
 
 var img_Walking_full_left = new Image();
-img_Walking_full_left.src = 'Walking_full_left.png'
+img_Walking_full_left.src = 'Player_walking_left.png'
 
 var img_Middle_Attack_full = new Image();
-img_Middle_Attack_full.src = 'Middle_Attack_full.png'
+img_Middle_Attack_full.src = 'Player_attack.png'
 
 var img_Middle_Attack_full_left = new Image();
-img_Middle_Attack_full_left.src = 'Middle_Attack_full_left.png'
+img_Middle_Attack_full_left.src = 'Player_attack_left.png'
 
 var img_BG_test = new Image();
 img_BG_test.src = 'BG_test.png'
@@ -302,8 +297,8 @@ class MainCharacter extends Creature {
 
 }
 
-p1 = new MainCharacter(400, 400, 1950, 1950, 150);
-p1.setLoops(4, 6, 6);
+p1 = new MainCharacter(400, 350, 500, 500, 200);
+p1.setLoops(4, 8, 6);
 
 class Obstacle { //장애물 클래스
     constructor() {
