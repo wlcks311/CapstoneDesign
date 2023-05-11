@@ -147,18 +147,6 @@ class Creature {
 }
 
 class MainCharacter extends Creature {
-    // constructor() {
-    //     this.x = 400;
-    //     this.y = 400;
-    //     this.width = p1.CanvasLength - 20;
-    //     this.height = p1.CanvasLength;
-    //     this.attackBox = {
-    //         position_x : this.x + p1.CanvasLength / 2, //공격 상자의 x좌표 -> 캐릭터 가운데
-    //         position_y : this.y,                       //공격 상자의 y좌표 -> 캐릭터와 동일
-    //         width : 80, //공격 가로 범위
-    //         height : 50 //공격 세로 범위
-    //     }
-    // }
 
     draw() {
 
@@ -382,7 +370,13 @@ class NormalZombie extends Creature {
         this.speed = 1;        // 몹 움직이는 속도
         this.xMax_left = 0;
         this.xMax_right = 0;
+        this.x_detectLeft = this.x - 50; //몹이 왼쪽에서 플레이어를 감지 할 수 있는 범위
+        this.x_detectRight = this.x + this.CanvasLength + 50; //몹이 오른쪽에서 플레이어를 감지 할 수 있는 범위
+        this.x_attackLeft = this.x - 20; //몹이 왼쪽에서 플레이어를 공격 할 수 있는 범위
+        this.x_attackRight = this.x + this.CanvasLength + 20; 
         this.isMovingDone = true;
+        this.isDead = false;
+        this.color = 'green';
     }
 
     setSpeed(speed) {
@@ -396,62 +390,113 @@ class NormalZombie extends Creature {
         this.move_range = move_range;
     }
     draw() {
-        ctx.fillStyle = 'green';
+        ctx.fillStyle = this.color;
         ctx.fillRect(this.x, this.y, this.width, this.height);
     }
-    move() {
-        
+
+    comeBackToPosition() {
+        if(this.x < (this.xMax_left + this.xMax_right) / 2) { //왼쪽으로 벗어난 경우
+            if (this.x != (this.xMax_left + this.xMax_right) / 2) { //가운데로 올 때까지 이동
+                console.log('2');
+                this.x++;
+            }
+        }
+        else if ((this.xMax_left + this.xMax_right) / 2 < this.x) {  // 오른쪽으로 벗어난 경우
+            if (this.x != (this.xMax_left + this.xMax_right) / 2) { //가운데로 올 때까지 이동
+                console.log('2');
+                this.x--;
+            }
+        }
+    }
+    attack() {
+        this.color = 'red';
+    }
+
+    move(p1_x_left, p1_x_right) {
+        this.x_detectLeft = this.x - 50;
+        this.x_detectRight = this.x + this.CanvasLength + 50;
         this.isMoving = true;
-        
-        if (this.isMovingDone == true) { // 움직임이 끝난 상태일 때
-            if (this.moveCount < 90) {// 1.5초 동안 잠시 멈췄다가
-                this.isMoving = false;
-                this.moveCount++;
+        if (this.isDead == false) { // 몹이 살아있으면 움직임
+            if((this.x_detectLeft < p1_x_right && p1_x_left < this.x) || (p1_x_left < this.x_detectRight && p1_x_right > this.x)) {  // 플레이어가 탐지 범위 안에 들어온 경우
+
+                if ((this.x_attackLeft < p1_x_right && p1_x_left < this.x) || (p1_x_left < this.x_attackRight && p1_x_right > this.x)) { //플레이어가 공격 범위 안에 들어온 경우
+                    console.log('3');
+                    this.attack();
+                }
+
+                else { //탐지 범위 안에 들어왔지만 공격 범위는 아닌 경우 -> 플레이어 따라가기
+                    if (this.x_detectLeft < p1_x_right && p1_x_left < this.x) { //왼쪽으로 이동
+                        console.log('4');
+                        this.x--;
+                    }
+
+                    else { //오른쪽으로 이동
+                        console.log('4');
+                        this.x++;
+                    }
+                }
             }
+
+            else if((this.x < this.xMax_left) || (this.xMax_right < this.x + this.CanvasLength)) {//지정된 구역을 벗어난 경우
+                this.color = 'green';
+                this.comeBackToPosition();
+            }
+
+            else { // 탐지가 된것도 아니고, 지정된 구역을 벗어난 경우도 아닌 경우 -> 일반 무작위 움직임
+                console.log('1');
+                this.color = 'green';
+                if (this.isMovingDone == true) { // 움직임이 끝난 상태일 때
+                    if (this.moveCount < 90) {// 1.5초 동안 잠시 멈췄다가
+                        this.isMoving = false;
+                        this.moveCount++;
+                    }
+                    
+                    else { // 다시 움직임 재개
+                        this.moveCount = 0;
+                        this.move_randNum = Math.floor(Math.random() * this.move_range);
+                        // floor -> 정수로 반올림, random -> 0~1사이 난수 발생 여기선 move_range만큼 곱해줌
             
-            else { // 다시 움직임 재개
-                this.moveCount = 0;
-                this.move_randNum = Math.floor(Math.random() * this.move_range);
-                // floor -> 정수로 반올림, random -> 0~1사이 난수 발생 여기선 move_range만큼 곱해줌
-    
-                this.isMovingDone = false;
-            }
-
-        }
-
-        else { //움직임이 끝나지 않았을 때
-            if (this.move_randNum <= 10 && this.moveCount < this.move_randNum) { //난수가 일정 수보다 작으면 가만히 서 있는 걸로
-                this.isMoving = false;
-                this.moveCount+=this.speed;
-            }
-
-            else { //움직이는 경우
-                if ((this.move_randNum % 2 == 0) && this.moveCount < this.move_randNum) { //짝수인 경우 -> 오른쪽으로 이동
-                    if (this.x + this.width + this.speed <= this.xMax_right) { //고정 범위 안에 있는 경우
-                        this.x+=this.speed;
+                        this.isMovingDone = false;
+                    }
+        
+                }
+        
+                else { //움직임이 끝나지 않았을 때
+                    if (this.move_randNum <= 10 && this.moveCount < this.move_randNum) { //난수가 일정 수보다 작으면 가만히 서 있는 걸로
+                        this.isMoving = false;
                         this.moveCount+=this.speed;
                     }
-                    else { // 고정 범위 끝까지 간 경우 -> 움직임 마쳤다고 판단
-                        this.isMovingDone = true; 
+        
+                    else { //움직이는 경우
+                        if ((this.move_randNum % 2 == 0) && this.moveCount < this.move_randNum) { //짝수인 경우 -> 오른쪽으로 이동
+                            if (this.x + this.width + this.speed <= this.xMax_right) { //고정 범위 안에 있는 경우
+                                this.x+=this.speed;
+                                this.moveCount+=this.speed;
+                            }
+                            else { // 고정 범위 끝까지 간 경우 -> 움직임 마쳤다고 판단
+                                this.isMovingDone = true;
+                            }
+        
+                        }
+                        else if (this.moveCount < this.move_randNum) {//홀수인 경우 -> 왼쪽으로 이동
+                            if (this.x - this.speed >= this.xMax_left) { //고정 범위 안에 있는 경우
+                                this.x-=this.speed;
+                                this.moveCount+=this.speed;
+                            }
+                            else { // 고정 범위 끝까지 간 경우 -> 움직임 마쳤다고 판단
+                                this.isMovingDone = true;
+                            }
+                        }
+        
+                        else if (this.moveCount >= this.move_randNum) {
+                            this.isMovingDone = true;
+                            this.moveCount = 0;
+                        }
                     }
-
-                }
-                else if (this.moveCount < this.move_randNum) {//홀수인 경우 -> 왼쪽으로 이동
-                    if (this.x - this.speed >= this.xMax_left) { //고정 범위 안에 있는 경우
-                        this.x-=this.speed;
-                        this.moveCount+=this.speed;
-                    }
-                    else { // 고정 범위 끝까지 간 경우 -> 움직임 마쳤다고 판단
-                        this.isMovingDone = true; 
-                    }
-                }
-
-                else if (this.moveCount >= this.move_randNum) {
-                    this.isMovingDone = true;
-                    this.moveCount = 0;
                 }
             }
         }
+        
     }
 }
 
@@ -476,8 +521,6 @@ obstacle4.x = 1400;
 
 function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드를 실행함
     requestAnimationFrame(actionPerFrame);
-
-    console.log(bg.BG_x);
 
     ctx.clearRect(0,0, canvas.width, canvas.height);
     isBGmovingRight = false;
@@ -568,7 +611,7 @@ function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드�
     obstacle.draw()
     //obstacle2.draw()
     nz1.draw()
-    nz1.move()
+    nz1.move(p1.x, p1.x + p1.CanvasLength)
     obstacle3.draw()
     obstacle4.draw()
     p1.draw()
