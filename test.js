@@ -572,114 +572,118 @@ var obstacle4 = new Obstacle();
 obstacle4.x = 1400;
 
 
+const fps = 60;
+function animate() {
+  // perform some animation task here
+  ctx.clearRect(0,0, canvas.width, canvas.height);
+  isBGmovingRight = false;
+  isBGmovingLeft = false;
+  bg.draw()
 
-function actionPerFrame() { //1초에 60번(모니터에 따라 다름) 코드를 실행함
-    requestAnimationFrame(actionPerFrame);
+  //충돌이 없는 경우에만 주인공의 x, y좌표 갱신
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 550, canvas.width, 250);
 
-    ctx.clearRect(0,0, canvas.width, canvas.height);
-    isBGmovingRight = false;
-    isBGmovingLeft = false;
-    bg.draw()
+  ctx.fillStyle = 'red';
+  ctx.fillRect(150, 550, 5, 100);
+  ctx.fillRect(500, 550, 5, 100);
 
-    //충돌이 없는 경우에만 주인공의 x, y좌표 갱신
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 550, canvas.width, 250);
+  ctx.fillStyle = 'blue';
+  ctx.fillRect(p1.x +30, 550 , 5, 50);
+  ctx.fillRect(p1.x + p1.CanvasLength -30, 550 , 5, 50);
 
-    ctx.fillStyle = 'red';
-    ctx.fillRect(150, 550, 5, 100);
-    ctx.fillRect(500, 550, 5, 100);
+  ctx.fillStyle = 'yellow'
+  ctx.fillRect(nz1.x_detectLeft, 550, 5, 40);
+  ctx.fillRect(nz1.x_detectRight, 550, 5, 40);
 
-    ctx.fillStyle = 'blue';
-    ctx.fillRect(p1.x +30, 550 , 5, 50);
-    ctx.fillRect(p1.x + p1.CanvasLength -30, 550 , 5, 50);
+  //좌표계를 이용해 충돌 확인 
+  if ((p1.isMovingLeft == true && collisonCheckX[p1.x + 28] == -1) && p1.isAttacking == false) { //왼쪽 충돌 여부 확인 후 왼쪽으로 이동
+      if ((p1.x <= 300) && bg.BG_x > 0) { //배경화면 오른쪽으로 이동하는 경우 (캐릭터가 왼쪽으로 이동)
+          bg.isBGmovingRight = true;
+          bg.BG_x-=bg.ratio * 2;
+          obstacle.x+=2;
+          //obstacle2.x+=2;
+          obstacle3.x+=2;
+          obstacle4.x+=2;
+          //캐릭터가 왼쪽으로 이동(실제론 가만히 있음)하므로 물체들이 오른쪽으로 이동해야함
+      }
 
-    ctx.fillStyle = 'yellow'
-    ctx.fillRect(nz1.x_detectLeft, 550, 5, 40);
-    ctx.fillRect(nz1.x_detectRight, 550, 5, 40);
+      else if (p1.x > 0) {
+          p1.x-=2;
+          p1.attackBox.position_x-=2;
+      }
+  }
+  
 
-    //좌표계를 이용해 충돌 확인 
-    if ((p1.isMovingLeft == true && collisonCheckX[p1.x + 28] == -1) && p1.isAttacking == false) { //왼쪽 충돌 여부 확인 후 왼쪽으로 이동
-        if ((p1.x <= 300) && bg.BG_x > 0) { //배경화면 오른쪽으로 이동하는 경우 (캐릭터가 왼쪽으로 이동)
-            bg.isBGmovingRight = true;
-            bg.BG_x-=bg.ratio * 2;
-            obstacle.x+=2;
-            //obstacle2.x+=2;
-            obstacle3.x+=2;
-            obstacle4.x+=2;
-            //캐릭터가 왼쪽으로 이동(실제론 가만히 있음)하므로 물체들이 오른쪽으로 이동해야함
-        }
+  if ((p1.isMovingRight == true && collisonCheckX[p1.x + p1.CanvasLength - 28] == -1) && p1.isAttacking == false) { //오른쪽 충돌 여부 확인 후 오른쪽으로 이동
+      if (((p1.x + p1.CanvasLength) >= 1700) && bg.BG_x < bg.BG_xMax) { //배경화면 왼쪽으로 이동하는 경우 (캐릭터가 오른쪽으로 이동)
+          bg.isBGmovingLeft = true;
+          bg.BG_x+=bg.ratio * 2;
+          obstacle.x-=2;
+          //obstacle2.x-=2;
+          obstacle3.x-=2;
+          obstacle4.x-=2;
+      }
 
-        else if (p1.x > 0) {
-            p1.x-=2;
-            p1.attackBox.position_x-=2;
-        }
-    }
-    
+      else {
+          p1.x+=2;
+          p1.attackBox.position_x+=2;
+      }
 
-    if ((p1.isMovingRight == true && collisonCheckX[p1.x + p1.CanvasLength - 28] == -1) && p1.isAttacking == false) { //오른쪽 충돌 여부 확인 후 오른쪽으로 이동
-        if (((p1.x + p1.CanvasLength) >= 1700) && bg.BG_x < bg.BG_xMax) { //배경화면 왼쪽으로 이동하는 경우 (캐릭터가 오른쪽으로 이동)
-            bg.isBGmovingLeft = true;
-            bg.BG_x+=bg.ratio * 2;
-            obstacle.x-=2;
-            //obstacle2.x-=2;
-            obstacle3.x-=2;
-            obstacle4.x-=2;
-        }
+  }
+  
+  //공격 중인 경우
+  if (p1.isAttacking == true) {
+       //오른쪽 공격인 경우
+      if(p1.isLookingRight == true) {
+          if(attackTimer >= p1.attackBox.width) {
+              obstacle.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
+              //obstacle2.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
+              obstacle3.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
+              obstacle4.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
+              p1.isAttacking = false;
+              attackTimer = 0;
+          }
+          else {
+              ctx.fillStyle = 'green';
+              ctx.fillRect(p1.attackBox.position_x, p1.attackBox.position_y, attackTimer, p1.attackBox.height);
+              attackTimer+=2;
+          }
+          
+      }
+      //왼쪽 공격인 경우
+      else if(p1.isLookingRight == false) {
+          if(attackTimer >= p1.attackBox.width) {
+              obstacle.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
+              //obstacle2.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
+              obstacle3.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
+              obstacle4.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
+              p1.isAttacking = false;
+              attackTimer = 0;
+          }
+          else {
+              ctx.fillStyle = 'green';
+              ctx.fillRect(p1.attackBox.position_x - attackTimer, p1.attackBox.position_y, attackTimer, p1.attackBox.height);
+              attackTimer+=2;
+          }
+      }
+  }
 
-        else {
-            p1.x+=2;
-            p1.attackBox.position_x+=2;
-        }
+  obstacle.draw()
+  //obstacle2.draw()
+  nz1.draw()
+  nz1.move(p1.x + 30, p1.x + p1.CanvasLength - 30)
+  obstacle3.draw()
+  obstacle4.draw()
+  p1.draw()
 
-    }
-    
-    //공격 중인 경우
-    if (p1.isAttacking == true) {
-         //오른쪽 공격인 경우
-        if(p1.isLookingRight == true) {
-            if(attackTimer >= p1.attackBox.width) {
-                obstacle.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
-                //obstacle2.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
-                obstacle3.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
-                obstacle4.checkAttacked(p1.attackBox.position_x + p1.attackBox.width);
-                p1.isAttacking = false;
-                attackTimer = 0;
-            }
-            else {
-                ctx.fillStyle = 'green';
-                ctx.fillRect(p1.attackBox.position_x, p1.attackBox.position_y, attackTimer, p1.attackBox.height);
-                attackTimer+=2;
-            }
-            
-        }
-        //왼쪽 공격인 경우
-        else if(p1.isLookingRight == false) {
-            if(attackTimer >= p1.attackBox.width) {
-                obstacle.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
-                //obstacle2.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
-                obstacle3.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
-                obstacle4.checkAttacked(p1.attackBox.position_x - p1.attackBox.width);
-                p1.isAttacking = false;
-                attackTimer = 0;
-            }
-            else {
-                ctx.fillStyle = 'green';
-                ctx.fillRect(p1.attackBox.position_x - attackTimer, p1.attackBox.position_y, attackTimer, p1.attackBox.height);
-                attackTimer+=2;
-            }
-        }
-    }
 
-    obstacle.draw()
-    //obstacle2.draw()
-    nz1.draw()
-    nz1.move(p1.x + 30, p1.x + p1.CanvasLength - 30)
-    obstacle3.draw()
-    obstacle4.draw()
-    p1.draw()
+
+    setTimeout(() => {
+        requestAnimationFrame(animate);
+    }, 1000 / fps);
 }
-
-actionPerFrame();
+animate();
 
 
 //이벤트 리스너들
