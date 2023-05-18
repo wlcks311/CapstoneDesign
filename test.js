@@ -143,9 +143,25 @@ class Creature {
 }
 
 class MainCharacter extends Creature {
+    constructor(x, y, width, height, CanvasLength) {
+        super(x, y, width, height, CanvasLength);
+        this.isBlocking = false;
+        this.BlockBox = {
+            x_right : this.x + this.CanvasLength - 30,
+            x_left : this.x + 30,
+            y : this.y + 40,
+            width : 40,
+            height : 70
+        }
+    }
+    updateBlockBox(x_right, x_left, y) {
+        this.BlockBox.x_right = x_right;
+        this.BlockBox.x_left = x_left;
+        this.BlockBox.y = y;
+    }
 
     draw() {
-
+        this.updateBlockBox(this.x + this.CanvasLength - 30, this.x + 30, this.y + 40); //플레이어의 움직임에 따라 해당 좌표를 방어 상자에 갱신
         if (this.isAttacking_motion == true) { //공격 하는 경우 -> 움직일 수 없음
             if (this.isLookingRight == true) {
                 if (attackFrame < 30 && (this.attackCount <= 1)) {
@@ -215,7 +231,18 @@ class MainCharacter extends Creature {
         }
             // 공격중이 아닌 경우
         else {
-            if (this.isMoving == true) { //걷는 경우
+            if (this.isBlocking == true) {
+                ctx.fillStyle = 'blue';
+                if(this.isLookingRight == true) { //오른쪽 보고있는 경우 -> 오른쪽 방어
+                    ctx.fillRect(this.BlockBox.x_right, this.BlockBox.y, this.BlockBox.width, this.BlockBox.height);
+                }
+
+                else { //왼쪽 보고있는 경우 -> 왼쪽 방어
+                    ctx.fillRect(this.BlockBox.x_left, this.BlockBox.y, this.BlockBox.width, this.BlockBox.height);
+                }
+            }
+
+            else if (this.isMoving == true) { //걷는 경우
                 if (this.isLookingRight == true) { //오른쪽을 보고있는 경우
                     if (frameCount < refreshRate) {
                         frameCount++;
@@ -750,5 +777,17 @@ document.addEventListener('keydown', function(e) { //f키를 누를시 발생
     if (e.key === 'f') {
         p1.isAttacking = true;
         p1.isAttacking_motion = true;
+    }
+})
+
+document.addEventListener('keydown', function(e) { //r키를 누르고 있을때 이벤트 발생 -> 방어동작
+    if (e.key === 'r') {
+        p1.isBlocking = true;
+    }
+})
+
+document.addEventListener('keyup', function(e) { //r키를 누른상태에서 땠을때 발생 -> 방어동작 해제
+    if (e.key === 'r') {
+        p1.isBlocking = false;
     }
 })
