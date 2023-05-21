@@ -5,6 +5,45 @@
     <title>Prototype</title>
   </head>
   <body>
-    <input type="button" value="고고" onclick="location.href='test.html'">
+    <form id="login">
+      id: <input type="text" name="userId">
+      passwd: <input type="password" name="userPassword">
+      <button type="submit">로그인</button>
+    </form>
+    <script>
+      function myFunction() {
+        var x =document.getElementsById("login");
+        var userId=x.userId.value;
+        var userPassword=x.userPassword.value;
+        console.log(userId)
+        const Url = 'http://localhost:8081/user/sign-in'
+        const Data = {
+          userId:userId,
+          userPassword:userPassword,
+        }
+
+        const othePram={
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: userId,
+            userPassword: userPassword,
+          }),
+          method: 'POST',
+        }
+        console.log(otherPram)
+        fetch(Url, othePram)
+        .then((data)=>{return data.json()})
+        .then((res)=>{console.log(res)
+        if(res.code.status==1200) {
+          location.href='test.html'
+        }
+      })
+        .catch((error)=>console.log(error))
+      }
+
+      myFunction();
+    </script>
   </body>
 </html>
