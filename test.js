@@ -54,6 +54,30 @@ img_Player_attacked.src = 'Player_attacked.png'
 var img_Player_attacked_left = new Image();
 img_Player_attacked_left.src = 'Player_attacked_left.png'
 
+var img_Zombie_idle = new Image();
+img_Zombie_idle.src = 'Zombie_idle.png'
+
+var img_Zombie_idle_left = new Image();
+img_Zombie_idle_left.src = 'Zombie_idle_left.png'
+
+var img_Zombie_attack = new Image();
+img_Zombie_attack.src = 'Zombie_attack.png'
+
+var img_Zombie_attack_left = new Image();
+img_Zombie_attack_left.src = 'Zombie_attack_left.png'
+
+var img_Zombie_walking = new Image();
+img_Zombie_walking.src = 'Zombie_walking.png'
+
+var img_Zombie_walking_left = new Image();
+img_Zombie_walking_left.src = 'Zombie_walking_left.png'
+
+var img_Zombie_stunned = new Image();
+img_Zombie_stunned.src = 'Zombie_stunned.png'
+
+var img_Zombie_stunned_left = new Image();
+img_Zombie_stunned_left.src = 'Zombie_stunned_left.png'
+
 //애니메이션 관련 변수
 
 var isBGmovingRight = false;
@@ -111,6 +135,11 @@ class Creature {
         this.attackLoop = 0;
 
         //각 동작의 현재 몇 번째 컷인지 알려주는 정보
+        this.idleCut = 0;
+        this.walkingCut = 0;
+        this.attackCut = 0;
+
+        //각 동작의 현재 몇 번째 프레임인지 알려주는 정보
         this.idleCount = 0;
         this.walkingCount = 0;
         this.attackCount = 0;
@@ -396,7 +425,7 @@ class MainCharacter extends Creature {
 
 }
 
-p1 = new MainCharacter(400, 350, 500, 500, 200);
+p1 = new MainCharacter(500, 350, 500, 500, 200);
 p1.setLoops(4, 8, 6);
 
 class Obstacle { //장애물 클래스
@@ -455,7 +484,7 @@ class Obstacle { //장애물 클래스
 }
 
 
-class NormalZombie extends Creature {
+class NormalZombie extends Creature { //좀비 클래스
     constructor(x, y, width, height, CanvasLength) {
         super(x, y, width, height, CanvasLength);
         this.move_range = 100; // 몹이 무작위로 움직이는 최대 범위
@@ -466,14 +495,16 @@ class NormalZombie extends Creature {
         this.xMax_right = 0;
         this.x_detectLeft = this.x - 150; //몹이 왼쪽에서 플레이어를 감지 할 수 있는 범위
         this.x_detectRight = this.x + this.CanvasLength + 150; //몹이 오른쪽에서 플레이어를 감지 할 수 있는 범위
-        this.x_attackLeft = this.x - 50; //몹이 왼쪽에서 플레이어를 공격 할 수 있는 범위
-        this.x_attackRight = this.x + this.CanvasLength + 50; 
+        this.x_attackLeft = this.x + 10; //몹이 왼쪽에서 플레이어를 공격 할 수 있는 범위
+        this.x_attackRight = this.x + this.CanvasLength - 10; 
         this.isMovingDone = true;
         this.isDead = false;
         this.color = 'green';
         this.attackBox.width = 100;
         this.isStunned = false;
         this.stunCount = 0;
+        this.stunAnimaitonCount = 0;
+        this.stunLoop = 0;
         this.waitCount = 0;
     }
 
@@ -487,18 +518,143 @@ class NormalZombie extends Creature {
     setMoveRange(move_range) {
         this.move_range = move_range;
     }
+
+    setStunLoop(stunLoop) {
+        this.stunLoop = stunLoop;
+    }
+
     draw() {
-        ctx.drawImage(img_Zombie_health, (this.healthMax - this.healthCount) * 500, 0, 500, 500, this.x, this.y - 70, this.width, this.height);
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        //이동하고있는 중이 아닌 경우
+        if (this.isMoving == false) { 
+            if (this.isStunned == true) {//공격이 막혀 스턴 상태일 경우 스턴 2초 (120) 4컷
+                if (this.isLookingRight == true) {//오른쪽
+                    if (this.stunCount % 40 < 39) {
+                        ctx.drawImage(img_Zombie_stunned, this.width * this.stunAnimaitonCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if (this.stunCount % 40 == 39) {
+                        this.stunAnimaitonCount++;
+                        this.stunAnimaitonCount = this.stunAnimaitonCount % this.stunLoop;
+                        ctx.drawImage(img_Zombie_stunned, this.width * this.stunAnimaitonCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                }
 
-        ctx.fillStyle = 'red';
-        ctx.fillRect(this.x, 550, 5, 30);
-        ctx.fillRect(this.x + this.width, 550, 5, 30);
+                else { //왼쪽
+                    if (this.stunCount % 40 < 39) {
+                        ctx.drawImage(img_Zombie_stunned_left, this.width * this.stunAnimaitonCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if (this.stunCount % 40 == 39) {
+                        this.stunAnimaitonCount++;
+                        this.stunAnimaitonCount = this.stunAnimaitonCount % this.stunLoop;
+                        ctx.drawImage(img_Zombie_stunned_left, this.width * this.stunAnimaitonCount, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                }
+            }
 
+             // 텀이 끝나고 공격하고 있는 중인경우
+            else if (this.isAttacking == true && this.waitCount == 30) {
+                if (this.isLookingRight == true) { // 오른쪽
+                    if (this.attackCount < 15) {
+                        ctx.drawImage(img_Zombie_attack, this.width * 0, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if (this.attackCount < 30) {
+                        ctx.drawImage(img_Zombie_attack, this.width * 1, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if (this.attackCount < 40) {
+                        ctx.drawImage(img_Zombie_attack, this.width * 2, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if (this.attackCount < 50) {
+                        ctx.drawImage(img_Zombie_attack, this.width * 3, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if (this.attackCount == 50) {
+                        this.attackCount = 0;
+                        ctx.drawImage(img_Zombie_attack, this.width * 3, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    this.attackCount++;
+                }
+                else { //왼쪽
+                    if (this.attackCount < 15) {
+                        ctx.drawImage(img_Zombie_attack_left, this.width * 0, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if (this.attackCount < 30) {
+                        ctx.drawImage(img_Zombie_attack_left, this.width * 1, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if (this.attackCount < 40) {
+                        ctx.drawImage(img_Zombie_attack_left, this.width * 2, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if (this.attackCount < 50) {
+                        ctx.drawImage(img_Zombie_attack_left, this.width * 3, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if (this.attackCount == 50) {
+                        this.attackCount = 0;
+                        ctx.drawImage(img_Zombie_attack_left, this.width * 3, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    this.attackCount++;
+
+                }
+            }
+
+            //가만히 숨쉬는 경우
+            else {
+                if (this.isLookingRight == true) {//오른쪽
+                    if (this.idleCount < 30) {
+                        ctx.drawImage(img_Zombie_idle, this.width * this.idleCut, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if(this.idleCount == 30) {
+                        this.idleCount = 0;
+                        this.idleCut++;
+                        this.idleCut = this.idleCut % this.idleLoop;
+                        ctx.drawImage(img_Zombie_idle, this.width * this.idleCut, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    this.idleCount++;
+                }
+                else { //왼쪽
+                    if (this.idleCount < 30) {
+                        ctx.drawImage(img_Zombie_idle_left, this.width * this.idleCut, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    else if(this.idleCount == 30) {
+                        this.idleCount = 0;
+                        this.idleCut++;
+                        this.idleCut = this.idleCut % this.idleLoop;
+                        ctx.drawImage(img_Zombie_idle_left, this.width * this.idleCut, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                    }
+                    this.idleCount++;
+                }
+            }
+        }
+
+        //움직이는 경우
+        else { 
+            if (this.isLookingRight == true) {//오른쪽
+                if (this.walkingCount < 30) {
+                    ctx.drawImage(img_Zombie_walking, this.width * this.walkingCut, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                }
+                else if(this.walkingCount == 30) {
+                    this.walkingCount = 0;
+                    this.walkingCut++;
+                    this.walkingCut = this.walkingCut % this.walkingLoop;
+                    ctx.drawImage(img_Zombie_walking, this.width * this.walkingCut, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                }
+                this.walkingCount++;
+            }
+            else { //왼쪽
+                if (this.walkingCount < 30) {
+                    ctx.drawImage(img_Zombie_walking_left, this.width * this.walkingCut, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                }
+                else if(this.walkingCount == 30) {
+                    this.walkingCount = 0;
+                    this.walkingCut++;
+                    this.walkingCut = this.walkingCut % this.walkingLoop;
+                    ctx.drawImage(img_Zombie_walking_left, this.width * this.walkingCut, 0, this.width, this.height, this.x, this.y, this.CanvasLength, this.CanvasLength);
+                }
+                this.walkingCount++;
+            }
+        }
+        
     }
 
     comeBackToPosition() {
+        console.log('come back to position');
+        this.isMoving = true;
         if(this.x < (this.xMax_left + this.xMax_right) / 2) { //왼쪽으로 벗어난 경우
             if (this.x != (this.xMax_left + this.xMax_right) / 2) { //가운데로 올 때까지 이동
                 this.isLookingRight = true;
@@ -518,6 +674,7 @@ class NormalZombie extends Creature {
     }
 
     stun() {
+        this.isMoving = false;
         if (this.stunCount < 120) {
             this.stunCount++;
         }
@@ -528,10 +685,12 @@ class NormalZombie extends Creature {
     }
 
     attack() {
+        this.isMoving = false;
         ctx.fillStyle = 'red';
+        console.log('attack');
 
         if (this.isLookingRight == true) { // 오른쪽 보고있는 경우
-            if (this.attackBox.atkTimer <= this.attackBox.width) { //오른쪽 공격 진행중
+            if (this.attackBox.atkTimer <= this.attackBox.width) { //오른쪽 공격 진행중. 공격범위 -> 100, 프레임당 2. 50프레임 소모
                 //공격 상자 늘리기 전에 플레이어의 방어 확인
                 if (p1.isBlocking == true && (this.attackBox.position_x + this.attackBox.atkTimer + 1) >= p1.BlockBox.x_left) { 
                     // 플레이어의 왼쪽 방어가 먼저 활성화 되었을 때 -> 공격 막힘
@@ -557,7 +716,6 @@ class NormalZombie extends Creature {
             }
 
             else { //공격 종료
-
                 if (p1.isDamaged == true) { //플레이어가 해당 몬스터의 공격을 받았을 경우
                     p1.healthCount--;
                 }
@@ -579,11 +737,11 @@ class NormalZombie extends Creature {
                     this.attackBox.atkTimer = 0;
                 }
                 else {
-                    if (this.waitCount < 60) { //몬스터가 공격 하기 전 잠깐 주는 텀
+                    if (this.waitCount < 30) { //몬스터가 공격 하기 전 잠깐 주는 텀
                         this.waitCount++;
                     }
 
-                    else if (this.waitCount == 60) {
+                    else if (this.waitCount == 30) {
                         this.attackBox.atkTimer+=2;
                     }
                     
@@ -595,7 +753,6 @@ class NormalZombie extends Creature {
             }
 
             else { //공격 종료
-
                 if (p1.isDamaged == true) { //플레이어가 해당 몬스터의 공격을 받았을 경우
                     p1.healthCount--;
                 }
@@ -614,15 +771,14 @@ class NormalZombie extends Creature {
         this.x_detectLeft = this.x - 150;
         this.x_detectRight = this.x + this.CanvasLength + 150;
 
-        this.x_attackLeft = this.x - 50;
-        this.x_attackRight = this.x + this.CanvasLength + 50;
-        this.isMoving = true;
+        this.x_attackLeft = this.x + 10;
+        this.x_attackRight = this.x + this.CanvasLength - 10;
 
         this.attackBox.position_x = this.x + this.CanvasLength / 2;
 
         if (this.isDead == false) { // 몹이 살아있으면 움직임
-            for (var i = 0; i <= this.CanvasLength; i++) {
-                collisonCheckX[this.x + i] = 1;
+            for (var i = 0; i <= this.CanvasLength - 80; i++) {
+                collisonCheckX[this.x + 40 + i] = 1;
             }
 
             if (this.isAttacking == true) { // 공격중인 경우
@@ -632,36 +788,38 @@ class NormalZombie extends Creature {
             else if (this.isStunned == true) { //공격이 막혀 잠시 스턴에 걸린 경우
                 this.stun();
             }
-
-            else if((this.x_detectLeft <= p1_x_right && p1_x_right < this.x) || (this.x + this.CanvasLength < p1_x_left && p1_x_left <= this.x_detectRight)) {  // 플레이어가 탐지 범위 안에 들어온 경우
-                if ((this.x_attackLeft < p1_x_right && p1_x_right < this.x) || (this.x + this.CanvasLength < p1_x_left && p1_x_left < this.x_attackRight)) { //플레이어가 공격 범위 안에 들어온 경우
+             // 플레이어가 탐지 범위 안에 들어온 경우
+            else if((this.x_detectLeft <= p1_x_right && p1_x_right < this.x) || (this.x + this.CanvasLength < p1_x_left && p1_x_left <= this.x_detectRight)) { 
+                console.log('detected');
+                //플레이어가 공격 범위 안에 들어온 경우
+                if ((this.x_attackLeft < p1_x_right && p1_x_right < this.x) || (this.x + this.CanvasLength < p1_x_left && p1_x_left < this.x_attackRight)) {
                     this.isAttacking = true;
                 }
 
                 else { //탐지 범위 안에 들어왔지만 공격 범위는 아닌 경우 -> 플레이어 따라가기
-                    if (this.x_detectLeft < p1_x_right && p1_x_right < this.x) { //왼쪽으로 이동
+                    if (this.x_detectLeft < p1_x_right && p1_x_right < this.x + 40) { //왼쪽으로 이동
+                        this.isMoving = true;
                         this.isLookingRight = false;
-                        collisonCheckX[this.x - 1] = 1;
-                        collisonCheckX[this.x + this.CanvasLength] = -1;
+                        collisonCheckX[this.x + 39] = 1;
+                        collisonCheckX[this.x + this.CanvasLength - 40] = -1;
                         this.x--;
                     }
 
-                    else if (this.x + this.CanvasLength < p1_x_left && p1_x_left <= this.x_detectRight) { //오른쪽으로 이동
+                    else if (this.x + this.CanvasLength - 40 < p1_x_left && p1_x_left <= this.x_detectRight) { //오른쪽으로 이동
+                        this.isMoving = true;
                         this.isLookingRight = true;
-                        collisonCheckX[this.x] = -1;
-                        collisonCheckX[this.x + this.CanvasLength + 1] = 1;
+                        collisonCheckX[this.x + 40] = -1;
+                        collisonCheckX[this.x + this.CanvasLength - 39] = 1;
                         this.x++;
                     }
                 }
             }
 
             else if((this.x < this.xMax_left) || (this.xMax_right < this.x + this.CanvasLength)) {//지정된 구역을 벗어난 경우
-                this.color = 'green';
                 this.comeBackToPosition();
             }
 
             else { // 탐지가 된것도 아니고, 지정된 구역을 벗어난 경우도 아닌 경우 -> 일반 무작위 움직임
-                this.color = 'green';
                 if (this.isMovingDone == true) { // 움직임이 끝난 상태일 때
                     if (this.moveCount < 90) {// 1.5초 동안 잠시 멈췄다가
                         this.isMoving = false;
@@ -674,6 +832,7 @@ class NormalZombie extends Creature {
                         // floor -> 정수로 반올림, random -> 0~1사이 난수 발생 여기선 move_range만큼 곱해줌
             
                         this.isMovingDone = false;
+                        console.log('move again');
                     }
         
                 }
@@ -682,36 +841,48 @@ class NormalZombie extends Creature {
                     if (this.move_randNum <= 10 && this.moveCount < this.move_randNum) { //난수가 일정 수보다 작으면 가만히 서 있는 걸로
                         this.isMoving = false;
                         this.moveCount+=this.speed;
+                        console.log('small number');
                     }
         
                     else { //움직이는 경우
+
                         if ((this.move_randNum % 2 == 0) && this.moveCount < this.move_randNum) { //짝수인 경우 -> 오른쪽으로 이동
-                            if (this.x + this.width + this.speed <= this.xMax_right) { //고정 범위 안에 있는 경우
-                                collisonCheckX[this.x] = -1;
-                                collisonCheckX[this.x + this.CanvasLength + 1] = 1;
+                            if (this.x + this.CanvasLength + this.speed <= this.xMax_right) { //고정 범위 안에 있는 경우
+                                this.isMoving = true;
+                                collisonCheckX[this.x + 40] = -1;
+                                collisonCheckX[this.x + this.CanvasLength -39] = 1;
                                 this.isLookingRight = true;
                                 this.x+=this.speed;
                                 this.moveCount+=this.speed;
+                                console.log('is moving');
                             }
                             else { // 고정 범위 끝까지 간 경우 -> 움직임 마쳤다고 판단
+                                this.isMoving = false;
                                 this.isMovingDone = true;
+                                console.log('is moving done edge');
                             }
         
                         }
-                        else if (this.moveCount < this.move_randNum) {//홀수인 경우 -> 왼쪽으로 이동
+                        else if ((this.move_randNum % 2 == 1) && this.moveCount < this.move_randNum) {//홀수인 경우 -> 왼쪽으로 이동
+                            console.log(this.x - this.speed);
                             if (this.x - this.speed >= this.xMax_left) { //고정 범위 안에 있는 경우
-                                collisonCheckX[this.x - 1] = 1;
-                                collisonCheckX[this.x + this.CanvasLength] = -1;
+                                this.isMoving = true;
+                                collisonCheckX[this.x + 39] = 1;
+                                collisonCheckX[this.x + this.CanvasLength - 40] = -1;
                                 this.isLookingRight = false;
                                 this.x-=this.speed;
                                 this.moveCount+=this.speed;
+                                console.log('is moving left');
                             }
                             else { // 고정 범위 끝까지 간 경우 -> 움직임 마쳤다고 판단
+                                this.isMoving = false;
                                 this.isMovingDone = true;
+                                console.log('is moving done edge');
                             }
                         }
         
                         else if (this.moveCount >= this.move_randNum) {
+                            this.isMoving = false;
                             this.isMovingDone = true;
                             this.moveCount = 0;
                         }
@@ -728,7 +899,7 @@ class NormalZombie extends Creature {
     }
 
     checkAttacked(atkTimer) {//공격이 해당 물체에 가해졌는지 확인
-        if ((collisonCheckX[atkTimer] == 1) && (this.x <= atkTimer && atkTimer <= this.x + this.width)) {
+        if ((collisonCheckX[atkTimer] == 1) && (this.x <= atkTimer && atkTimer <= this.x + this.CanvasLength)) {
             this.healthCount--;
             if (this.healthCount == 0) {
                 console.log('nz1 dead');
@@ -739,7 +910,7 @@ class NormalZombie extends Creature {
     }
 }
 
-nz1 = new NormalZombie(200, 400, 150, 150, 150);
+nz1 = new NormalZombie(200, 350, 500, 500, 200);
 
 var obstacle = new Obstacle();
 
@@ -748,7 +919,8 @@ var obstacle = new Obstacle();
 // obstacle2.color = 'blue';
 
 nz1.setFixedRange(150, 500);
-
+nz1.setStunLoop(4);
+nz1.setLoops(6, 7, 4);
 
 var obstacle3 = new Obstacle();
 obstacle3.x = 1100;
@@ -771,8 +943,8 @@ function animate() {
 
   ctx.drawImage(img_Player_health, (p1.healthMax - p1.healthCount) * 500, 0, 500, 500, 10, 15, 300, 300);
 
-  for (var i = 0; i <= p1.CanvasLength - 60; i++) { //플레이어가 서 있는 곳은 0 으로 표시
-    collisonCheckX[p1.x + 30 + i] = 0;
+  for (var i = 0; i <= p1.CanvasLength - 80; i++) { //플레이어가 서 있는 곳은 0 으로 표시
+    collisonCheckX[p1.x + 40 + i] = 0;
 }
 
   //충돌이 없는 경우에만 주인공의 x, y좌표 갱신
@@ -783,16 +955,24 @@ function animate() {
   ctx.fillRect(150, 550, 5, 100);
   ctx.fillRect(500, 550, 5, 100);
 
+  ctx.fillRect(nz1.x_attackLeft, 550, 5, 40);
+  ctx.fillRect(nz1.x_attackRight, 550, 5, 40);
+
   ctx.fillStyle = 'blue';
-  ctx.fillRect(p1.x +30, 550 , 5, 50);
-  ctx.fillRect(p1.x + p1.CanvasLength -30, 550 , 5, 50);
+  ctx.fillRect(p1.x + 40, 550 , 5, 50);
+  ctx.fillRect(p1.x + p1.CanvasLength - 40, 550 , 5, 50);
 
   ctx.fillStyle = 'yellow'
   ctx.fillRect(nz1.x_detectLeft, 550, 5, 40);
   ctx.fillRect(nz1.x_detectRight, 550, 5, 40);
 
+  ctx.fillRect(nz1.x + 40, 550, 5, 40);
+  ctx.fillRect(nz1.x + nz1.CanvasLength - 40, 550, 5, 40);
+
+
+
   //좌표계를 이용해 충돌 확인 
-  if ((p1.isMovingLeft == true && collisonCheckX[p1.x + 28] == -1) && (p1.isAttacking == false && p1.isBlocking == false && p1.isDamaged == false)) { //왼쪽 충돌 여부 확인 후 왼쪽으로 이동
+  if ((p1.isMovingLeft == true && collisonCheckX[p1.x + 38] == -1) && (p1.isAttacking == false && p1.isBlocking == false && p1.isDamaged == false)) { //왼쪽 충돌 여부 확인 후 왼쪽으로 이동
       if ((p1.x <= 300) && bg.BG_x > 0) { //배경화면 오른쪽으로 이동하는 경우 (캐릭터가 왼쪽으로 이동)
           bg.isBGmovingRight = true;
           bg.BG_x-=bg.ratio * 2;
@@ -804,17 +984,17 @@ function animate() {
       }
 
       else if (p1.x > 0) { //플레이어가 이동하면서 위치 정보 갱신 (왼쪽으로 이동)
-          collisonCheckX[p1.x + 28] = 0;
-          collisonCheckX[p1.x + 29] = 0;
-          collisonCheckX[p1.x + p1.CanvasLength - 30] = -1;
-          collisonCheckX[p1.x + p1.CanvasLength - 31] = -1;
+          collisonCheckX[p1.x + 38] = 0;
+          collisonCheckX[p1.x + 39] = 0;
+          collisonCheckX[p1.x + p1.CanvasLength - 40] = -1;
+          collisonCheckX[p1.x + p1.CanvasLength - 41] = -1;
           p1.x-=2;
           p1.attackBox.position_x-=2;
       }
   }
   
 
-  if ((p1.isMovingRight == true && collisonCheckX[p1.x + p1.CanvasLength - 28] == -1) && (p1.isAttacking == false && p1.isBlocking == false && p1.isDamaged == false)) { //오른쪽 충돌 여부 확인 후 오른쪽으로 이동
+  if ((p1.isMovingRight == true && collisonCheckX[p1.x + p1.CanvasLength - 38] == -1) && (p1.isAttacking == false && p1.isBlocking == false && p1.isDamaged == false)) { //오른쪽 충돌 여부 확인 후 오른쪽으로 이동
       if (((p1.x + p1.CanvasLength) >= 1700) && bg.BG_x < bg.BG_xMax) { //배경화면 왼쪽으로 이동하는 경우 (캐릭터가 오른쪽으로 이동)
           bg.isBGmovingLeft = true;
           bg.BG_x+=bg.ratio * 2;
@@ -825,10 +1005,10 @@ function animate() {
       }
 
       else { //플레이어가 이동하면서 위치 정보 갱신 (오른쪽으로 이동)
-        collisonCheckX[p1.x + 30] = -1;
-        collisonCheckX[p1.x + 31] = -1;
-        collisonCheckX[p1.x + p1.CanvasLength - 29] = 0;
-        collisonCheckX[p1.x + p1.CanvasLength - 28] = 0;
+        collisonCheckX[p1.x + 40] = -1;
+        collisonCheckX[p1.x + 41] = -1;
+        collisonCheckX[p1.x + p1.CanvasLength - 39] = 0;
+        collisonCheckX[p1.x + p1.CanvasLength - 38] = 0;
         p1.x+=2;
         p1.attackBox.position_x+=2;
       }
@@ -877,7 +1057,7 @@ function animate() {
   obstacle.draw()
   //obstacle2.draw()
   nz1.draw()
-  nz1.move(p1.x + 30, p1.x + p1.CanvasLength - 30)
+  nz1.move(p1.x + 40, p1.x + p1.CanvasLength - 40)
   obstacle3.draw()
   obstacle4.draw()
   p1.draw()
