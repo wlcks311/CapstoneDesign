@@ -16,7 +16,7 @@
         var userId=x.userId.value;
         var userPassword=x.userPassword.value;
         console.log(userId)
-        const Url = 'http://localhost:8081/user/sign-in'
+        const Url = 'http://localhost:8081/user/sign-in' //현재 이상태는 로컬 호스트 환경 전용이고, http://localhost:8081 이부분만 aws서버가 올라오면 변경하면 된다.
         const Data = {
           userId:userId,
           userPassword:userPassword,
